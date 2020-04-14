@@ -39,6 +39,12 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(btStatusReceiver, filter);
 
+        IntentFilter filter2 = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        registerReceiver(btStatusReceiver, filter2);
+
+        IntentFilter filter3 = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(btStatusReceiver, filter3);
+
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         getPairedDevices();
@@ -135,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
             } else if (action != null && action.equals(BluetoothDevice.ACTION_FOUND)) {
+                System.out.println("found a device");
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String temp2 = device.getName() + ", " + device.getAddress();
                 System.out.println("temp2");
@@ -143,6 +150,11 @@ public class MainActivity extends AppCompatActivity {
                     devices.add(temp2);
                     adapter.notifyDataSetChanged();
                 }
+            } else if (action != null && action.equals(BluetoothAdapter.ACTION_DISCOVERY_STARTED)){
+                System.out.println("discover started");
+            }
+            else if (action != null && action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)){
+                System.out.println("discover finished");
             }
         }
     };
