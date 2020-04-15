@@ -42,15 +42,6 @@ public class MainActivity extends AppCompatActivity {
         btFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         registerReceiver(btReceiver, btFilter);
 
-//        IntentFilter btDeviceFoundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-//        registerReceiver(btReceiver, btDeviceFoundFilter);
-//
-//        IntentFilter btDiscoveryStartedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-//        registerReceiver(btReceiver, btDiscoveryStartedFilter);
-//
-//        IntentFilter btDiscoveryFinishedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-//        registerReceiver(btReceiver, btDiscoveryFinishedFilter);
-
         getPairedDevices();
 
         pairedDevicesLV = findViewById(R.id.paired_devices);
