@@ -34,16 +34,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         IntentFilter btStatusFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        registerReceiver(btStatusReceiver, btStatusFilter);
+        registerReceiver(btReceiver, btStatusFilter);
 
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(btStatusReceiver, filter);
+        IntentFilter btDeviceFoundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(btReceiver, btDeviceFoundFilter);
 
-        IntentFilter filter2 = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        registerReceiver(btStatusReceiver, filter2);
+        IntentFilter btDiscoveryStartedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        registerReceiver(btReceiver, btDiscoveryStartedFilter);
 
-        IntentFilter filter3 = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(btStatusReceiver, filter3);
+        IntentFilter btDiscoveryFinishedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(btReceiver, btDiscoveryFinishedFilter);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(btStatusReceiver);
+        unregisterReceiver(btReceiver);
     }
 
     private void getPairedDevices(){
@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         bluetoothAdapter.startDiscovery();
     }
 
-    private final BroadcastReceiver btStatusReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver btReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
@@ -159,29 +159,3 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 }
-
-//BluetoothHeadset bluetoothHeadset;
-//
-//// Get the default adapter
-//BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-//
-//private BluetoothProfile.ServiceListener profileListener = new BluetoothProfile.ServiceListener() {
-//    public void onServiceConnected(int profile, BluetoothProfile proxy) {
-//        if (profile == BluetoothProfile.HEADSET) {
-//            bluetoothHeadset = (BluetoothHeadset) proxy;
-//        }
-//    }
-//    public void onServiceDisconnected(int profile) {
-//        if (profile == BluetoothProfile.HEADSET) {
-//            bluetoothHeadset = null;
-//        }
-//    }
-//};
-//
-//// Establish connection to the proxy.
-//bluetoothAdapter.getProfileProxy(context, profileListener, BluetoothProfile.HEADSET);
-//
-//// ... call functions on bluetoothHeadset
-//
-//// Close proxy connection after use.
-//bluetoothAdapter.closeProfileProxy(bluetoothHeadset);
