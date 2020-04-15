@@ -33,19 +33,23 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        IntentFilter btStatusFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        registerReceiver(btReceiver, btStatusFilter);
-
-        IntentFilter btDeviceFoundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(btReceiver, btDeviceFoundFilter);
-
-        IntentFilter btDiscoveryStartedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        registerReceiver(btReceiver, btDiscoveryStartedFilter);
-
-        IntentFilter btDiscoveryFinishedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(btReceiver, btDiscoveryFinishedFilter);
-
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        IntentFilter btFilter = new IntentFilter();
+        btFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        btFilter.addAction(BluetoothDevice.ACTION_FOUND);
+        btFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        btFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(btReceiver, btFilter);
+
+//        IntentFilter btDeviceFoundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+//        registerReceiver(btReceiver, btDeviceFoundFilter);
+//
+//        IntentFilter btDiscoveryStartedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+//        registerReceiver(btReceiver, btDiscoveryStartedFilter);
+//
+//        IntentFilter btDiscoveryFinishedFilter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+//        registerReceiver(btReceiver, btDiscoveryFinishedFilter);
 
         getPairedDevices();
 
@@ -110,11 +114,11 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver btReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            String temp = (String) bt_status.getText();
-            temp = temp.split(":")[0];
+            String action = intent.getAction();
 
             if (action != null && action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                String temp = (String) bt_status.getText();
+                temp = temp.split(":")[0];
                 final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
                         BluetoothAdapter.ERROR);
                 switch (state) {
@@ -143,9 +147,14 @@ public class MainActivity extends AppCompatActivity {
             } else if (action != null && action.equals(BluetoothDevice.ACTION_FOUND)) {
                 System.out.println("found a device");
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
                 String temp2 = device.getName() + ", " + device.getAddress();
                 System.out.println("temp2");
                 System.out.println(temp2);
+
+                System.out.println("rssi");
+                System.out.println(rssi);
+
                 if(!devices.contains(temp2)){
                     devices.add(temp2);
                     adapter.notifyDataSetChanged();
