@@ -14,8 +14,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -30,12 +28,13 @@ public class MainActivity extends AppCompatActivity {
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int MY_PERMISSIONS_REQUEST_LOCATION = 2;
     BluetoothAdapter bluetoothAdapter;
-    Set<BluetoothDevice> pairedDevices;
-    TextView bt_status;
-    ListView pairedDevicesLV;
-    ArrayAdapter<String> adapter;
 
-    ArrayList<String> devices = new ArrayList<>();
+    TextView bt_status;
+
+    Set<BluetoothDevice> pairedDevices;
+    ListView pairedDevicesLV;
+    ArrayAdapter<String> pairedDevicesAdapter;
+    ArrayList<String> pairedDevicesAL = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +55,10 @@ public class MainActivity extends AppCompatActivity {
         getPairedDevices();
 
         pairedDevicesLV = findViewById(R.id.paired_devices);
-        adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1, android.R.id.text1, devices);
+        pairedDevicesAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, android.R.id.text1, pairedDevicesAL);
 
-        pairedDevicesLV.setAdapter(adapter);
+        pairedDevicesLV.setAdapter(pairedDevicesAdapter);
 
         bt_status = findViewById(R.id.bt_status);
 
@@ -86,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (pairedDevices.size() > 0) {
             for (BluetoothDevice device : pairedDevices) {
-                devices.add(device.getName() + ", " + device.getAddress());
+                pairedDevicesAL.add(device.getName() + ", " + device.getAddress());
             }
         }
     }
@@ -103,8 +102,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void btDiscover(View v) {
-        devices.clear();
-        adapter.notifyDataSetChanged();
+        pairedDevicesAL.clear();
+        getPairedDevices();
+        pairedDevicesAdapter.notifyDataSetChanged();
         btDiscoveryStart();
     }
 
@@ -129,8 +129,8 @@ public class MainActivity extends AppCompatActivity {
                     case BluetoothAdapter.STATE_OFF:
                         temp = temp.concat(": OFF");
                         bt_status.setText(temp);
-                        devices.clear();
-                        adapter.notifyDataSetChanged();
+                        pairedDevicesAL.clear();
+                        pairedDevicesAdapter.notifyDataSetChanged();
                         break;
                     case BluetoothAdapter.STATE_TURNING_OFF:
                         temp = temp.concat(": TURNING OFF");
@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
                         temp = temp.concat(": ON");
                         bt_status.setText(temp);
                         getPairedDevices();
-                        adapter.notifyDataSetChanged();
+                        pairedDevicesAdapter.notifyDataSetChanged();
                         btDiscoveryStart();
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
@@ -159,9 +159,9 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println("rssi");
                 System.out.println(rssi);
 
-                if (!devices.contains(temp2)) {
-                    devices.add(temp2);
-                    adapter.notifyDataSetChanged();
+                if (!pairedDevicesAL.contains(temp2)) {
+                    pairedDevicesAL.add(temp2);
+                    pairedDevicesAdapter.notifyDataSetChanged();
                 }
             } else if (action != null && action.equals(BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
                 System.out.println("discover started");
