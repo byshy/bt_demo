@@ -48,10 +48,24 @@
         android:layout_height="wrap_content"
         android:onClick="btDiscover"
         android:text="bt discover"
-        app:layout_constraintBottom_toTopOf="@+id/paired_devices"
+        app:layout_constraintBottom_toTopOf="@+id/bt_status"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.05"
         app:layout_constraintStart_toEndOf="@+id/turn_bt_on"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.39" />
+        app:layout_constraintVertical_bias="0.727" />
+
+    <Button
+        android:id="@+id/bt_discover_enable"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="enableBTDiscover"
+        android:text="enable discovere"
+        app:layout_constraintBottom_toTopOf="@+id/bt_status"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.097"
+        app:layout_constraintStart_toEndOf="@+id/bt_discover"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.727" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

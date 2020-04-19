@@ -1,5 +1,6 @@
 package com.bluetoothdemo.ps;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -27,6 +28,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int MY_PERMISSIONS_REQUEST_LOCATION = 2;
+    private final static int REQUEST_ENABLE_BT_DISCOVER = 3;
     BluetoothAdapter bluetoothAdapter;
 
     TextView bt_status;
@@ -108,6 +110,13 @@ public class MainActivity extends AppCompatActivity {
         btDiscoveryStart();
     }
 
+    public void enableBTDiscover(View v){
+        Intent discoverableIntent =
+                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, REQUEST_ENABLE_BT_DISCOVER);
+        startActivity(discoverableIntent);
+    }
+
     public void btDiscoveryStart() {
         if (bluetoothAdapter.isDiscovering()) {
             bluetoothAdapter.cancelDiscovery();
@@ -139,9 +148,21 @@ public class MainActivity extends AppCompatActivity {
                     case BluetoothAdapter.STATE_ON:
                         temp = temp.concat(": ON");
                         bt_status.setText(temp);
+                        temp = temp.split(":")[0];
                         getPairedDevices();
                         pairedDevicesAdapter.notifyDataSetChanged();
                         btDiscoveryStart();
+                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                        temp = temp.concat(": ON and The device is in DISCOVERABLE mode.");
+                        bt_status.setText(temp);
+                        break;
+                    case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+                        temp = temp.concat(": ON but The device isn't in DISCOVERABLE mode but can still receive connections.");
+                        bt_status.setText(temp);
+                        break;
+                    case BluetoothAdapter.SCAN_MODE_NONE:
+                        temp = temp.concat(": ON but The device isn't in DISCOVERABLE mode and cannot receive connections.");
+                        bt_status.setText(temp);
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
                         temp = temp.concat(": TURNING ON");
@@ -240,6 +261,24 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        String temp = (String) bt_status.getText();
+        temp = temp.split(":")[0];
+
+        if (requestCode == REQUEST_ENABLE_BT_DISCOVER){
+            if (resultCode == RESULT_OK){
+                temp = temp.concat(": ON and DISCOVERABLE");
+                bt_status.setText(temp);
+            } else {
+                temp = temp.concat(": error turning DISCOVERABILITY on");
+                bt_status.setText(temp);
+            }
         }
     }
 }
