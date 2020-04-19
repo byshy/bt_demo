@@ -18,6 +18,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -36,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int MY_PERMISSIONS_REQUEST_LOCATION = 2;
     private final static int REQUEST_ENABLE_BT_DISCOVER = 3;
+    private final static String APP_NAME = "bt_demo";
+    private final static UUID MY_UUID = UUID.fromString("72f388c9-0a7c-4af4-bd4e-446285b3f9b1");
+
     BluetoothAdapter bluetoothAdapter;
 
     TextView bt_status;
@@ -94,6 +98,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (pairedDevices.size() > 0) {
             for (BluetoothDevice device : pairedDevices) {
+//                ParcelUuid[] parcelUuid = device.getUuids();
+//                System.out.println("parcelUuid:");
+//                for (ParcelUuid uuid : parcelUuid) {
+//                    System.out.println(uuid.getUuid());
+//                }
+//                try {
+//                    ParcelUuid[] parcelUuid = device.getUuids();
+//                    System.out.println("parcelUuid:");
+//                    System.out.println(parcelUuid);
+//                    device.createRfcommSocketToServiceRecord(java.util.UUID.fromString(UUID));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
                 pairedDevicesAL.add(device.getName() + ", " + device.getAddress());
             }
         }
@@ -187,13 +204,32 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println("rssi");
                 System.out.println(rssi);
 
+                ParcelUuid[] parcelUuid = device.getUuids();
+                System.out.println("parcelUuid:");
+
+                if(parcelUuid != null){
+                    for (ParcelUuid uuid : parcelUuid) {
+                        System.out.println(uuid.getUuid());
+                    }
+                } else {
+                    System.out.println(parcelUuid);
+                }
+
                 if (!pairedDevicesAL.contains(temp2)) {
                     pairedDevicesAL.add(temp2);
                     pairedDevicesAdapter.notifyDataSetChanged();
                 }
             } else if (action != null && action.equals(BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
+                String temp = (String) bt_status.getText();
+                temp = temp.split(":")[0];
+                temp = temp.concat(": Discovery started");
+                bt_status.setText(temp);
                 System.out.println("discover started");
             } else if (action != null && action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)) {
+                String temp = (String) bt_status.getText();
+                temp = temp.split(":")[0];
+                temp = temp.concat(": Discovery finished");
+                bt_status.setText(temp);
                 System.out.println("discover finished");
             }
         }
@@ -293,13 +329,13 @@ public class MainActivity extends AppCompatActivity {
 class AcceptThread extends Thread {
     private final BluetoothServerSocket mmServerSocket;
 
-    public AcceptThread(BluetoothAdapter bluetoothAdapter) {
+    public AcceptThread(BluetoothAdapter bluetoothAdapter, String appName, UUID uuid) {
         // Use a temporary object that is later assigned to mmServerSocket
         // because mmServerSocket is final.
         BluetoothServerSocket tmp = null;
         try {
             // MY_UUID is the app's UUID string, also used by the client code.
-            tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord("bt_demo", UUID.fromString("72f388c9-0a7c-4af4-bd4e-446285b3f9b1"));
+            tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(appName, uuid);
         } catch (IOException e) {
             Log.e(TAG, "Socket's listen() method failed", e);
         }
@@ -337,6 +373,62 @@ class AcceptThread extends Thread {
             mmServerSocket.close();
         } catch (IOException e) {
             Log.e(TAG, "Could not close the connect socket", e);
+        }
+    }
+}
+
+class ConnectThread extends Thread {
+    private final BluetoothSocket mmSocket;
+    private final BluetoothDevice mmDevice;
+    private final BluetoothAdapter mmBluetoothAdapter;
+
+    public ConnectThread(BluetoothDevice device, UUID uuid, BluetoothAdapter bluetoothAdapter) {
+        // Use a temporary object that is later assigned to mmSocket
+        // because mmSocket is final.
+        BluetoothSocket tmp = null;
+        mmDevice = device;
+
+        mmBluetoothAdapter = bluetoothAdapter;
+
+        try {
+            // Get a BluetoothSocket to connect with the given BluetoothDevice.
+            // MY_UUID is the app's UUID string, also used in the server code.
+            tmp = device.createRfcommSocketToServiceRecord(uuid);
+        } catch (IOException e) {
+            Log.e(TAG, "Socket's create() method failed", e);
+        }
+        mmSocket = tmp;
+    }
+
+    public void run() {
+        // Cancel discovery because it otherwise slows down the connection.
+        mmBluetoothAdapter.cancelDiscovery();
+
+        try {
+            // Connect to the remote device through the socket. This call blocks
+            // until it succeeds or throws an exception.
+            mmSocket.connect();
+        } catch (IOException connectException) {
+            // Unable to connect; close the socket and return.
+            try {
+                mmSocket.close();
+            } catch (IOException closeException) {
+                Log.e(TAG, "Could not close the client socket", closeException);
+            }
+            return;
+        }
+
+        // The connection attempt succeeded. Perform work associated with
+        // the connection in a separate thread.
+//        manageMyConnectedSocket(mmSocket);
+    }
+
+    // Closes the client socket and causes the thread to finish.
+    public void cancel() {
+        try {
+            mmSocket.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Could not close the client socket", e);
         }
     }
 }
