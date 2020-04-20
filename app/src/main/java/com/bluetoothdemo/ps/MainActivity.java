@@ -1,5 +1,6 @@
 package com.bluetoothdemo.ps;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,16 +12,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
@@ -31,19 +31,15 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
-
-import static android.content.ContentValues.TAG;
 
 public class MainActivity extends AppCompatActivity {
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int MY_PERMISSIONS_REQUEST_LOCATION = 2;
     private final static int REQUEST_ENABLE_BT_DISCOVER = 3;
-    private final static String APP_NAME = "bt_demo";
-    private final static UUID MY_UUID = UUID.fromString("72f388c9-0a7c-4af4-bd4e-446285b3f9b1");
+    private BluetoothGatt mGatt;
 
     BluetoothAdapter bluetoothAdapter;
 
@@ -83,7 +79,10 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 BluetoothDevice device = (BluetoothDevice) adapterView.getItemAtPosition(i);
                 System.out.println(device.getName());
-//                startCommunication(device);
+                if (bluetoothAdapter.isDiscovering()) {
+                    bluetoothAdapter.cancelDiscovery();
+                }
+                mGatt = device.connectGatt(view.getContext(), true, gattCallback);
             }
         });
 
@@ -101,21 +100,49 @@ public class MainActivity extends AppCompatActivity {
         bt_status.setText(btStatus);
     }
 
-    void startCommunication(BluetoothDevice device) {
-        ConnectThread mConnectThread = new ConnectThread(device);
-        mConnectThread.run();
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            ConnectThread mConnectThread = new ConnectThread(device);
-//            mConnectThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-//        } else {
-//            ConnectThread mConnectThread = new ConnectThread(device);
-//            mConnectThread.execute((Void) null);
-//        }
-    }
+    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            Log.i("onConnectionStateChange", "Status: " + status);
+            switch (newState) {
+                case BluetoothProfile.STATE_CONNECTED:
+                    Log.i("gattCallback", "STATE_CONNECTED");
+                    gatt.discoverServices();
+                    break;
+                case BluetoothProfile.STATE_DISCONNECTED:
+                    Log.e("gattCallback", "STATE_DISCONNECTED");
+                    break;
+                default:
+                    Log.e("gattCallback", "STATE_OTHER");
+            }
+
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            List<BluetoothGattService> services = gatt.getServices();
+            Log.i("onServicesDiscovered", services.toString());
+            gatt.readCharacteristic(services.get(1).getCharacteristics().get
+                    (0));
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic
+                                                 characteristic, int status) {
+            Log.i("onCharacteristicRead", characteristic.toString());
+            gatt.disconnect();
+        }
+    };
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mGatt == null) {
+            return;
+        }
+        mGatt.close();
+        mGatt = null;
         unregisterReceiver(btReceiver);
     }
 
@@ -123,20 +150,6 @@ public class MainActivity extends AppCompatActivity {
         pairedDevices = bluetoothAdapter.getBondedDevices();
 
         if (pairedDevices.size() > 0) {
-            //                ParcelUuid[] parcelUuid = device.getUuids();
-            //                System.out.println("parcelUuid:");
-            //                for (ParcelUuid uuid : parcelUuid) {
-            //                    System.out.println(uuid.getUuid());
-            //                }
-            //                try {
-            //                    ParcelUuid[] parcelUuid = device.getUuids();
-            //                    System.out.println("parcelUuid:");
-            //                    System.out.println(parcelUuid);
-            //                    device.createRfcommSocketToServiceRecord(java.util.UUID.fromString(UUID));
-            //                } catch (IOException e) {
-            //                    e.printStackTrace();
-            //                }
-            //                pairedDevicesAL.add(device.getName() + ", " + device.getAddress());
             pairedDevicesAL.addAll(pairedDevices);
         }
     }
@@ -159,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
         btDiscoveryStart();
     }
 
-    public void enableBTDiscover(View v){
+    public void enableBTDiscover(View v) {
         Intent discoverableIntent =
                 new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, REQUEST_ENABLE_BT_DISCOVER);
@@ -229,24 +242,16 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println("rssi");
                 System.out.println(rssi);
 
-//                BluetoothGattCallback gattCallback =
-//                        new BluetoothGattCallback() {};
-//                BluetoothGatt gatt = device.connectGatt(context, true, gattCallback);
-//                gatt.discoverServices();
-
-
                 ParcelUuid[] parcelUuid = device.getUuids();
                 System.out.println("parcelUuid:");
 
-                if(parcelUuid != null){
+                if (parcelUuid != null) {
                     for (ParcelUuid uuid : parcelUuid) {
                         System.out.println(uuid.getUuid());
                     }
-                } else {
-                    System.out.println(parcelUuid);
                 }
 
-                if (!pairedDevicesAL.contains(temp2)) {
+                if (!pairedDevicesAL.contains(device)) {
                     pairedDevicesAL.add(device);
                     pairedDevicesAdapter.notifyDataSetChanged();
                 }
@@ -266,27 +271,25 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public boolean checkLocationPermission() {
+    public void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            // Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_COARSE_LOCATION)) {
-
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
                 new AlertDialog.Builder(this)
                         .setTitle("location permission")
                         .setMessage("please enable location for this app")
                         .setPositiveButton("ok", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
-                                //Prompt the user once explanation has been shown
-                                ActivityCompat.requestPermissions(MainActivity.this,
-                                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                                ActivityCompat.requestPermissions(
+                                        MainActivity.this,
+                                        new String[]{
+                                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                                                Manifest.permission.BLUETOOTH_PRIVILEGED,
+                                        },
                                         MY_PERMISSIONS_REQUEST_LOCATION);
                             }
                         })
@@ -295,46 +298,27 @@ public class MainActivity extends AppCompatActivity {
 
 
             } else {
-                // No explanation needed, we can request the permission.
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                         MY_PERMISSIONS_REQUEST_LOCATION);
             }
-            return false;
-        } else {
-            return true;
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == MY_PERMISSIONS_REQUEST_LOCATION) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // location-related task you need to do.
-                    if (ContextCompat.checkSelfPermission(this,
-                            Manifest.permission.ACCESS_COARSE_LOCATION)
-                            == PackageManager.PERMISSION_GRANTED) {
-
-                        //Request location updates:
-//                        locationManager.requestLocationUpdates(provider, 400, 1, this);
-                        btDiscoveryStart();
-                    }
-
-                } else {
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-
+                if (ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    btDiscoveryStart();
                 }
-                return;
-            }
 
+            }
         }
     }
 
@@ -345,118 +329,13 @@ public class MainActivity extends AppCompatActivity {
         String temp = (String) bt_status.getText();
         temp = temp.split(":")[0];
 
-        if (requestCode == REQUEST_ENABLE_BT_DISCOVER){
-            if (resultCode == RESULT_OK){
+        if (requestCode == REQUEST_ENABLE_BT_DISCOVER) {
+            if (resultCode == RESULT_OK) {
                 temp = temp.concat(": ON and DISCOVERABLE");
                 bt_status.setText(temp);
             } else {
                 temp = temp.concat(": error turning DISCOVERABILITY on");
                 bt_status.setText(temp);
-            }
-        }
-    }
-
-    private class AcceptThread extends Thread {
-        private final BluetoothServerSocket mmServerSocket;
-
-        public AcceptThread() {
-            // Use a temporary object that is later assigned to mmServerSocket
-            // because mmServerSocket is final.
-            BluetoothServerSocket tmp = null;
-            try {
-                // MY_UUID is the app's UUID string, also used by the client code.
-                tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "Socket's listen() method failed", e);
-            }
-            mmServerSocket = tmp;
-        }
-
-        public void run() {
-            BluetoothSocket socket = null;
-            // Keep listening until exception occurs or a socket is returned.
-            while (true) {
-                try {
-                    socket = mmServerSocket.accept();
-                } catch (IOException e) {
-                    Log.e(TAG, "Socket's accept() method failed", e);
-                    break;
-                }
-
-                if (socket != null) {
-                    // A connection was accepted. Perform work associated with
-                    // the connection in a separate thread.
-//                manageMyConnectedSocket(socket);
-                    try {
-                        mmServerSocket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Closes the connect socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmServerSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the connect socket", e);
-            }
-        }
-    }
-
-    private class ConnectThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final BluetoothDevice mmDevice;
-
-        public ConnectThread(BluetoothDevice device) {
-            // Use a temporary object that is later assigned to mmSocket
-            // because mmSocket is final.
-            BluetoothSocket tmp = null;
-            mmDevice = device;
-
-            try {
-                // Get a BluetoothSocket to connect with the given BluetoothDevice.
-                // MY_UUID is the app's UUID string, also used in the server code.
-                tmp = device.createRfcommSocketToServiceRecord(device.getUuids()[0].getUuid());
-//                tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "Socket's create() method failed", e);
-            }
-            mmSocket = tmp;
-        }
-
-        public void run() {
-            // Cancel discovery because it otherwise slows down the connection.
-            bluetoothAdapter.cancelDiscovery();
-
-            try {
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
-                mmSocket.connect();
-            } catch (IOException connectException) {
-                // Unable to connect; close the socket and return.
-                try {
-                    mmSocket.close();
-                } catch (IOException closeException) {
-                    Log.e(TAG, "Could not close the client socket", closeException);
-                }
-                return;
-            }
-
-            // The connection attempt succeeded. Perform work associated with
-            // the connection in a separate thread.
-//        manageMyConnectedSocket(mmSocket);
-        }
-
-        // Closes the client socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the client socket", e);
             }
         }
     }
